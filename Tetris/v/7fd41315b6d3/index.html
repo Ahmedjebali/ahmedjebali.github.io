@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TETRIS</title>
+    <link rel="stylesheet" href="src/styles/main.css" />
+  </head>
+  <body data-phase="menu">
+    <div class="starfield" aria-hidden="true">
+      <span class="starfield__layer starfield__layer--far"></span>
+      <span class="starfield__layer starfield__layer--mid"></span>
+      <span class="starfield__layer starfield__layer--near"></span>
+    </div>
+
+    <div class="game">
+      <header class="status-bar">
+        <div class="status-bar__item">
+          <span class="status-bar__label">Score</span>
+          <span class="status-bar__value js-score">0000000</span>
+        </div>
+        <div class="status-bar__item">
+          <span class="status-bar__label">Level</span>
+          <span class="status-bar__value js-level">01</span>
+        </div>
+        <div class="status-bar__item">
+          <span class="status-bar__label">Lines</span>
+          <span class="status-bar__value js-lines">000</span>
+        </div>
+      </header>
+
+      <main class="game__main">
+        <aside class="panel panel--hold">
+          <h2 class="panel__title">Hold</h2>
+          <div class="js-hold" aria-hidden="true"></div>
+        </aside>
+
+        <section class="board js-board" aria-label="Tetris board"></section>
+
+        <aside class="panel panel--next">
+          <h2 class="panel__title">Next</h2>
+          <div class="preview-stack js-next" aria-hidden="true"></div>
+        </aside>
+      </main>
+
+      <footer class="controls-bar">
+        <div class="controls-bar__touch">
+          <button class="touch-btn js-touch-left" type="button" aria-label="Move left">&#8592;</button>
+          <button class="touch-btn js-touch-down" type="button" aria-label="Soft drop">&#8595;</button>
+          <button class="touch-btn touch-btn--accent js-touch-rotate" type="button" aria-label="Rotate clockwise">&#8635;</button>
+          <button class="touch-btn touch-btn--danger js-touch-hard-drop" type="button" aria-label="Hard drop">&#9167;</button>
+          <button class="touch-btn js-touch-right" type="button" aria-label="Move right">&#8594;</button>
+          <button class="touch-btn js-touch-hold" type="button" aria-label="Hold piece">H</button>
+        </div>
+        <span class="controls-bar__hint">&#8592; &#8594; Move&ensp;&middot;&ensp;&#8593; Rotate&ensp;&middot;&ensp;Z CCW&ensp;&middot;&ensp;&#8595; Soft&ensp;&middot;&ensp;Space Hard&ensp;&middot;&ensp;C Hold&ensp;&middot;&ensp;P Pause</span>
+      </footer>
+    </div>
+
+    <section class="menu js-menu" aria-label="Main menu">
+      <h1 class="menu__title text-gradient">TETRIS</h1>
+      <p class="menu__subtitle">A classic puzzle game</p>
+      <div class="menu__actions">
+        <button class="btn btn--primary js-start" type="button">Start Game</button>
+        <button class="btn btn--ghost js-open-high-scores" type="button">High Scores</button>
+        <button class="btn btn--ghost js-open-how-to-play" type="button">How to Play</button>
+      </div>
+      <p class="menu__footer">&#8592; &#8594; Move&ensp;&nbsp;&#8593; Rotate&ensp;&nbsp;Space Hard Drop&ensp;&nbsp;C Hold&ensp;&nbsp;P Pause</p>
+    </section>
+
+    <div class="overlay overlay--pause js-pause" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="overlay__panel">
+        <h2 class="overlay__title" id="pause-title">PAUSED</h2>
+        <p class="overlay__text">Press P or Escape to resume</p>
+        <div class="overlay__actions">
+          <button class="btn btn--primary js-pause-how-to-play" type="button">How to Play</button>
+          <button class="btn btn--ghost js-pause-quit-to-menu" type="button">Quit to Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay overlay--game-over js-game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+      <div class="overlay__panel">
+        <h2 class="overlay__title" id="game-over-title">GAME OVER</h2>
+        <p class="overlay__score">
+          <span class="overlay__score-label">Score</span>
+          <span class="overlay__score-value js-final-score">0000000</span>
+          <span class="overlay__badge js-new-high-score" hidden>NEW HIGH SCORE!</span>
+        </p>
+        <dl class="overlay__stats" aria-label="Final game statistics">
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Lines cleared</dt>
+            <dd class="overlay__stat-value js-game-over-lines">0</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Level reached</dt>
+            <dd class="overlay__stat-value js-game-over-level">1</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Tetrises</dt>
+            <dd class="overlay__stat-value js-game-over-tetrises">0</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">T-Spins</dt>
+            <dd class="overlay__stat-value js-game-over-t-spins">0</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Max Combo</dt>
+            <dd class="overlay__stat-value js-game-over-max-combo">0</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Pieces Placed</dt>
+            <dd class="overlay__stat-value js-game-over-pieces">0</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">Elapsed Time</dt>
+            <dd class="overlay__stat-value js-game-over-elapsed">00:00</dd>
+          </div>
+          <div class="overlay__stat">
+            <dt class="overlay__stat-label">APM</dt>
+            <dd class="overlay__stat-value js-game-over-apm">0.0</dd>
+          </div>
+        </dl>
+        <div class="overlay__actions">
+          <button class="btn btn--primary js-play-again" type="button">Play Again</button>
+          <button class="btn btn--ghost js-quit-to-menu" type="button">Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay overlay--how-to-play js-how-to-play" role="dialog" aria-modal="true" aria-labelledby="how-to-play-title">
+      <div class="overlay__panel overlay__panel--wide">
+        <h2 class="overlay__title" id="how-to-play-title">HOW TO PLAY</h2>
+        <p class="overlay__text">Stack falling tetrominoes to fill complete rows. Filled rows clear and award points. The game ends when a new piece cannot spawn.</p>
+
+        <section class="how-to-play__section">
+          <h3 class="how-to-play__heading">Pieces</h3>
+          <div class="how-to-play__pieces">
+            <div class="how-to-play__piece" data-piece="I">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">I</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="O">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">O</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="T">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">T</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="S">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">S</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="Z">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">Z</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="J">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">J</span>
+            </div>
+            <div class="how-to-play__piece" data-piece="L">
+              <div class="how-to-play__piece-grid">
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell how-to-play__cell--filled"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+                <div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div><div class="how-to-play__cell"></div>
+              </div>
+              <span class="how-to-play__piece-label">L</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="how-to-play__section">
+          <h3 class="how-to-play__heading">Controls</h3>
+          <table class="how-to-play__table">
+            <tbody>
+              <tr><td class="how-to-play__key">← / →</td><td>Move</td></tr>
+              <tr><td class="how-to-play__key">↑</td><td>Rotate Clockwise</td></tr>
+              <tr><td class="how-to-play__key">Z</td><td>Rotate Counter-Clockwise</td></tr>
+              <tr><td class="how-to-play__key">↓</td><td>Soft Drop</td></tr>
+              <tr><td class="how-to-play__key">Space</td><td>Hard Drop</td></tr>
+              <tr><td class="how-to-play__key">C / Shift</td><td>Hold</td></tr>
+              <tr><td class="how-to-play__key">P</td><td>Pause</td></tr>
+              <tr><td class="how-to-play__key">Esc</td><td>Pause / Dismiss</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="how-to-play__section">
+          <h3 class="how-to-play__heading">Scoring</h3>
+          <table class="how-to-play__table">
+            <tbody>
+              <tr><td>Single</td><td class="how-to-play__key">100 × Level</td></tr>
+              <tr><td>Double</td><td class="how-to-play__key">300 × Level</td></tr>
+              <tr><td>Triple</td><td class="how-to-play__key">500 × Level</td></tr>
+              <tr><td>Tetris</td><td class="how-to-play__key">800 × Level</td></tr>
+              <tr><td>T-Spin</td><td class="how-to-play__key">400 × Level</td></tr>
+              <tr><td>T-Spin Single</td><td class="how-to-play__key">800 × Level</td></tr>
+              <tr><td>T-Spin Double</td><td class="how-to-play__key">1200 × Level</td></tr>
+              <tr><td>T-Spin Triple</td><td class="how-to-play__key">1600 × Level</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <div class="overlay__actions">
+          <button class="btn btn--primary js-close-how-to-play" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay overlay--high-scores js-high-scores" role="dialog" aria-modal="true" aria-labelledby="high-scores-title">
+      <div class="overlay__panel">
+        <h2 class="overlay__title overlay__title--sm" id="high-scores-title">HIGH SCORES</h2>
+        <p class="overlay__text js-high-scores-empty" hidden>No high scores yet</p>
+        <ol class="high-scores js-high-scores-list" aria-label="High scores"></ol>
+        <div class="overlay__actions">
+          <button class="btn btn--primary js-close-high-scores" type="button">Close</button>
+          <button class="btn btn--danger js-clear-records" type="button">Clear All Records</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay overlay--confirm-clear js-confirm-clear" role="dialog" aria-modal="true" aria-labelledby="confirm-clear-title">
+      <div class="overlay__panel">
+        <h2 class="overlay__title overlay__title--sm" id="confirm-clear-title">Clear All Records?</h2>
+        <p class="overlay__text">Are you sure you want to clear all high scores? This cannot be undone.</p>
+        <div class="overlay__actions">
+          <button class="btn btn--ghost js-cancel-clear" type="button">Cancel</button>
+          <button class="btn btn--danger js-confirm-clear-action" type="button">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay overlay--confirm-quit js-confirm-quit" role="dialog" aria-modal="true" aria-labelledby="confirm-quit-title">
+      <div class="overlay__panel">
+        <h2 class="overlay__title overlay__title--sm" id="confirm-quit-title">Quit to Menu?</h2>
+        <p class="overlay__text">Are you sure? Unsaved progress will be lost.</p>
+        <div class="overlay__actions">
+          <button class="btn btn--primary js-cancel-quit" type="button">Cancel</button>
+          <button class="btn btn--ghost js-confirm-quit-action" type="button">Quit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="level-up js-level-up" aria-hidden="true">
+      <span class="level-up__flash"></span>
+      <span class="level-up__text text-gradient">LEVEL UP!</span>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

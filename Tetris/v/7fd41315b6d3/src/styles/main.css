@@ -1,0 +1,1113 @@
+/* Tetris — global stylesheet.
+   All visual tokens live on :root; components consume tokens only. */
+
+:root {
+  /* Palette — product brief §8.1 */
+  --color-bg: #0a0e27;
+  --color-bg-alt: #121638;
+  --color-surface: #1a1f3e;
+  --color-surface-elevated: #262b4f;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #f0f4ff;
+  --color-text-secondary: #8892b0;
+  --color-text-dim: rgba(255, 255, 255, 0.3);
+  --color-accent: #2979ff;
+  --color-accent-hover: #1565c0;
+
+  /* Piece colors — product brief §2.2 */
+  --color-cyan: #00e5ff;
+  --color-yellow: #ffd600;
+  --color-purple: #aa00ff;
+  --color-green: #00e676;
+  --color-red: #ff1744;
+  --color-blue: #2979ff;
+  --color-orange: #ff9100;
+
+  /* Typography — product brief §8.2 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+
+  /* Layout geometry — product brief §3.3 / §2.1 */
+  --cell-size: 30px;
+  --board-cols: 10;
+  --board-visible-rows: 20;
+  --panel-width: 120px;
+  --status-bar-height: 48px;
+  --radius: 8px;
+  --radius-sm: 4px;
+
+  /* Ghost projection — design/frontend-design.md §7 */
+  --ghost-border-width: 1.5px;
+  --ghost-opacity: 0.2;
+
+  /* Hard-drop flash — design/frontend-design.md §6 */
+  --color-drop-flash: #ffffff;
+
+  /* Line clear — design/frontend-design.md §6 / product brief §8.4 */
+  --clear-dissolve-duration: 120ms;
+
+  /* Level up — design/frontend-design.md §6 / product brief §2.8.
+     --level-up-duration mirrors LEVEL_UP_MS in src/engine/level.js; the
+     overlay's display window is engine-timed, so the token documents the
+     parity rather than driving a rule. */
+  --level-up-duration: 1500ms;
+  --level-up-flash-duration: 100ms;
+  --level-up-flash-opacity: 0.2;
+  --level-up-fade-duration: 300ms;
+
+  /* Lock delay — product brief §2.6 / §8.4 */
+  --lock-delay-glow-blur: 14px;
+  --lock-delay-glow-spread: 2px;
+  --lock-delay-glow-opacity: 40%;
+  --lock-delay-pulse-duration: 500ms;
+
+  /* Board well shadow — design/frontend-design.md §5 */
+  --board-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  /* Starfield — design/frontend-design.md §9 / product brief §8.5 */
+  --color-star-dim: rgba(255, 255, 255, 0.15);
+  --color-star: rgba(255, 255, 255, 0.25);
+  --color-star-bright: rgba(255, 255, 255, 0.4);
+
+  /* Modal overlays — product brief §3.2 / §3.5 */
+  --color-overlay-backdrop: rgba(0, 0, 0, 0.7);
+  --color-pause-backdrop: rgba(0, 0, 0, 0.65);
+  --overlay-duration: 200ms;
+  --game-over-delay: 400ms;
+  /* The topped-out board greys out over the same beat the overlay takes to fade
+     in: the filled board stays readable for --game-over-delay, then the
+     desaturation and the overlay fade run side by side. */
+  --game-over-desaturate-duration: 200ms;
+  --game-over-label-size: 11px;
+  --game-over-value-size: 14px;
+
+  /* Hold swap — design/frontend-design.md §6 / product brief §8.4.
+     --hold-swap-duration mirrors HOLD_SWAP_MS in src/engine/engine.js; the
+     render layer paints the exchange for exactly as long as the engine's
+     `holdSwap` window is open, so the token documents the parity rather than
+     driving a rule. */
+  --hold-swap-duration: 150ms;
+  /* One board width, negative: enough to carry a piece from any legal position
+     past the left edge, which `.board`'s `overflow: hidden` then clips. */
+  --hold-swap-travel: calc(-1 * var(--board-cols) * var(--cell-size));
+
+  /* Elevation */
+  --z-menu: 100;
+  --z-overlay: 200;
+
+  /* Danger button states — the destructive family shared by .btn--danger
+     (Clear All Records) and .touch-btn--danger. #d32f2f clears frontend-rules
+     §7's 4.5:1 against white button text; --color-red is a tetromino colour
+     and stays one. */
+  --color-danger: #d32f2f;
+  --color-danger-hover: #d50000;
+  --color-danger-active: #b71c1c;
+}
+
+/* Responsive cell scaling — up to the 45px design maximum (§2.1) */
+@media (min-width: 1024px) and (min-height: 800px) {
+  :root {
+    --cell-size: 36px;
+  }
+}
+@media (min-width: 1400px) and (min-height: 1000px) {
+  :root {
+    --cell-size: 45px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  background: linear-gradient(180deg, var(--color-bg) 0%, #000000 100%);
+  overflow: hidden;
+}
+
+/* ── Starfield background (product brief §8.5) ────────────────────
+   Three tiled dot layers rise at different speeds to suggest drifting
+   stars. Each layer animates its background-position down by exactly one
+   tile (the --star-size custom property), so the loop is seamless; the
+   durations differ per layer so the layers de-sync into parallax. The
+   fixed layer sits at z-index -1, below every in-flow screen but above
+   the body's gradient, and never captures a pointer. */
+
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.starfield__layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  animation: stars-rise var(--star-duration) linear infinite;
+}
+
+.starfield__layer--far {
+  --star-duration: 90s;
+  --star-size: 160px;
+  background-image: radial-gradient(
+    1px 1px at 25% 35%,
+    var(--color-star-dim),
+    transparent 100%
+  );
+  background-size: var(--star-size) var(--star-size);
+}
+
+.starfield__layer--mid {
+  --star-duration: 66s;
+  --star-size: 220px;
+  background-image: radial-gradient(
+    1px 1px at 70% 65%,
+    var(--color-star),
+    transparent 100%
+  );
+  background-size: var(--star-size) var(--star-size);
+}
+
+.starfield__layer--near {
+  --star-duration: 48s;
+  --star-size: 320px;
+  background-image: radial-gradient(
+    1.5px 1.5px at 45% 80%,
+    var(--color-star-bright),
+    transparent 100%
+  );
+  background-size: var(--star-size) var(--star-size);
+}
+
+@keyframes stars-rise {
+  to {
+    background-position: 0 var(--star-size);
+  }
+}
+
+/* ── Text gradient (menu title, level-up banner) ── */
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--color-cyan), var(--color-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Game screen layout (§3.3) ───────────────────────────── */
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+  gap: 12px;
+  padding: 24px;
+  margin: 0 auto;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: var(--status-bar-height);
+  padding: 0 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.status-bar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 108px;
+}
+
+.status-bar__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.status-bar__value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.game__main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* ── Side panels (§3.3) ─────────────────────────────────── */
+
+.panel {
+  width: var(--panel-width);
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.panel__title {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+}
+
+.preview {
+  display: grid;
+  grid-template-columns: repeat(4, 12px);
+  grid-auto-rows: 12px;
+  gap: 1px;
+  justify-content: center;
+}
+
+.preview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-stack .preview {
+  gap: 1px;
+}
+
+/* The hold slot draws a dashed outline while it waits for its first piece.
+   The renderer marks the empty slot with `data-empty`; the outline is
+   decorative chrome (frontend-rules §7), carried alongside the panel's HOLD
+   label and the empty 4×4 grid, so it is never colour-only signalling. */
+.panel--hold .preview[data-empty] {
+  outline: 1px dashed var(--color-text-dim);
+  outline-offset: 3px;
+}
+
+.preview__cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--color-bg-alt);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.preview__cell[data-state="filled"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.25),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ── Game board (§3.3, §8.3) ────────────────────────────── */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols), var(--cell-size));
+  /* Buffer rows 0-1 live in zero-height tracks so rows 2-21 fill the
+     visible 20-row field instead of being pushed down and clipped. */
+  grid-template-rows: repeat(2, 0);
+  grid-auto-rows: var(--cell-size);
+  width: calc(var(--board-cols) * var(--cell-size));
+  height: calc(var(--board-visible-rows) * var(--cell-size));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: var(--board-shadow);
+  /* Game over (§8.4) desaturates the board through this one transition, so both
+     directions are animated: in as `filter: grayscale(1)` is applied below the
+     game-over phase, and back out when the next game starts. Nothing filters
+     the board in any other phase, so the transition never fires on its own. */
+  transition: filter var(--game-over-desaturate-duration) ease;
+}
+
+/* The topped-out board holds for --game-over-delay so the player reads the
+   stack that ended the game, then greys out while the overlay fades in. The
+   delay rides on the transition, so the desaturation and the overlay's fade are
+   one beat rather than two stacked waits. */
+body[data-phase="game_over"] .board {
+  filter: grayscale(1);
+  transition-delay: var(--game-over-delay);
+}
+
+.board__row {
+  display: contents;
+}
+
+/* Buffer rows 0–1 sit in zero-height tracks (see .board); hiding their
+   cells guarantees they never paint even when they overflow the track. */
+.board__row--buffer .board__cell {
+  visibility: hidden;
+}
+
+.board__cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: var(--color-bg);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.board__cell[data-state="active"],
+.board__cell[data-state="locked"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.board__cell[data-state="locked"] {
+  filter: saturate(0.95);
+}
+
+/* The four landing cells flash white for the 80 ms between a hard drop and the
+   lock; the renderer paints them with `--color-drop-flash` (design §8.4). */
+.board__cell[data-state="flash"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.board__cell[data-state="ghost"] {
+  border: var(--ghost-border-width) solid var(--cell-color);
+  background: transparent;
+  opacity: var(--ghost-opacity);
+  box-shadow: none;
+}
+
+/* The cleared rows flash white — the renderer paints them with `--cell-color`
+   set to the shared flash white, mirroring `--color-drop-flash` — and shrink
+   to zero height over the 120 ms dissolve window. The rows only collapse when
+   the engine's own timer expires, so nothing moves until then (design §7). */
+.board__cell[data-state="clearing"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+  animation: clear-collapse var(--clear-dissolve-duration) ease-in forwards;
+}
+
+@keyframes clear-collapse {
+  to {
+    transform: scaleY(0);
+  }
+}
+
+/* The hold swap (§8.4) is two paint states the renderer applies for exactly as
+   long as the engine's `holdSwap` window is open: the piece leaving the board
+   slides out to the left while the piece that came out of the hold slot slides
+   in from it. Both carry the piece colour so the exchange reads as two pieces,
+   and both travel one board width — enough to clear the left edge from any
+   legal position, where `.board`'s `overflow: hidden` clips them. The renderer
+   paints the arriving piece over the departing one where the two overlap
+   (AGENTS.md §8.4). */
+.board__cell[data-state="swap-out"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+  animation: hold-slide-out var(--hold-swap-duration) ease-in forwards;
+}
+
+.board__cell[data-state="swap-in"] {
+  background: var(--cell-color);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+  animation: hold-slide-in var(--hold-swap-duration) ease-out forwards;
+}
+
+@keyframes hold-slide-out {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(var(--hold-swap-travel));
+  }
+}
+
+@keyframes hold-slide-in {
+  from {
+    transform: translateX(var(--hold-swap-travel));
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Lock delay (§2.6, §8.4) — while a piece rests and its 500 ms window is
+   counting, the board frame pulses in the active piece's colour. The pulse
+   period matches the window length so each beat is a lock warning. */
+
+.board[data-lock-delay="active"] {
+  animation: lock-delay-pulse var(--lock-delay-pulse-duration) ease-in-out infinite;
+}
+
+@keyframes lock-delay-pulse {
+  0%,
+  100% {
+    box-shadow: var(--board-shadow);
+  }
+  50% {
+    box-shadow:
+      var(--board-shadow),
+      0 0 var(--lock-delay-glow-blur) var(--lock-delay-glow-spread)
+        color-mix(in srgb, var(--cell-color) var(--lock-delay-glow-opacity), transparent);
+  }
+}
+
+/* ── Controls hint bar (§3.3) ───────────────────────────── */
+
+.controls-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.controls-bar__hint {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: var(--color-text-dim);
+}
+
+/* ── Touch buttons (PROJ-25) ──────────────────────────────
+   On-screen pointer buttons for touch and mouse fallback.
+   Every button is a minimum 44×44 px touch target (WCAG 2.5.8). */
+
+.controls-bar__touch {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.touch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.touch-btn:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.touch-btn:active {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  transform: scale(0.95);
+}
+
+.touch-btn--accent {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.touch-btn--accent:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.touch-btn--accent:active {
+  background: var(--color-accent-hover);
+}
+
+.touch-btn--danger {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.touch-btn--danger:hover {
+  background: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
+}
+
+.touch-btn--danger:active {
+  background: var(--color-danger-active);
+}
+
+/* ── Main menu chrome (§3.1) ────────────────────────────── */
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(10, 14, 39, 0.55) 0%, rgba(0, 0, 0, 0.75) 100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 200ms;
+}
+
+body[data-phase="menu"] .menu {
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu__title {
+  margin: 0;
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.menu__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.menu__footer {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--color-text-dim);
+}
+
+/* ── Buttons (§3.1) ─────────────────────────────────────── */
+
+.btn {
+  min-width: 200px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btn--primary {
+  border: none;
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.btn--primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn--ghost {
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.btn--ghost:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* The destructive action. Same shape as the other two modifiers — a solid fill
+   carrying white label text — so the only thing that changes is the hue: the
+   irreversible action reads as irreversible wherever it appears (the viewer's
+   trigger and the dialog's own confirm button share this one rule). */
+.btn--danger {
+  border: none;
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.btn--danger:hover {
+  background: var(--color-danger-hover);
+}
+
+/* ── Modal overlays — game over, how to play, high scores, confirmations
+   (§3.2, §3.5, §13) ──
+   Every overlay screen is the same full-screen dim backdrop with a centred
+   card, so they share one block. They are hidden by default and fade in
+   only while their phase is active; `visibility: hidden` takes the
+   overlay's buttons out of the tab order so a player can never tab into
+   an invisible screen. One rule in one place decides "this overlay shows":
+   the per-phase selector group below — never a per-overlay duplicate. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-overlay-backdrop);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--overlay-duration) ease, visibility var(--overlay-duration);
+}
+
+body[data-phase="game_over"] .overlay--game-over,
+body[data-phase="how_to_play"] .overlay--how-to-play,
+body[data-phase="high_scores"] .overlay--high-scores,
+body[data-phase="paused"] .overlay--pause,
+body[data-phase="confirm_quit"] .overlay--confirm-quit,
+body[data-phase="confirm_clear_scores"] .overlay--confirm-clear {
+  opacity: 1;
+  visibility: visible;
+}
+
+body[data-phase="game_over"] .overlay--game-over {
+  transition-delay: var(--game-over-delay);
+}
+
+.overlay--pause {
+  background: var(--color-pause-backdrop);
+}
+
+/* The engine freezes these timers while paused. Freeze their visual frames as
+   well so a dissolve or lock warning resumes exactly where it stopped. */
+body[data-phase="paused"] .board__cell[data-state="clearing"],
+body[data-phase="paused"] .board[data-lock-delay="active"] {
+  animation-play-state: paused;
+}
+
+.overlay__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  min-width: 320px;
+  padding: 32px 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.overlay__title {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.overlay__score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.overlay__score-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.overlay__score-value {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  color: var(--color-text);
+}
+
+/* The game-over high-score badge (product brief §13): a small uppercase label
+   in the house style — the shared label size, secondary tracking — beside the
+   final score. Solid --color-cyan fill: at 11px this is small text, so
+   frontend-rules §7's 4.5:1 minimum applies and the cyan→purple gradient
+   (which only clears it at the cyan end) is unusable here. The badge is never
+   colour-only signalling: the "NEW HIGH SCORE!" text carries the meaning. */
+.overlay__badge {
+  font-size: var(--game-over-label-size);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-cyan);
+}
+
+.overlay__stats {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.overlay__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.overlay__stat-label {
+  font-size: var(--game-over-label-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.overlay__stat-value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--game-over-value-size);
+  color: var(--color-text);
+}
+
+.overlay__text {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.overlay__controls {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.overlay__controls li {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 4px 0;
+}
+
+.overlay__controls span {
+  min-width: 72px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.overlay__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* ── How-to-play expanded content ─────────────────────────── */
+
+.overlay__panel--wide {
+  max-width: 520px;
+  /* tallest modal: cap it inside the overlay's 24px padding so content
+     scrolls instead of clipping off a short desktop window */
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.overlay__title--sm {
+  font-size: 28px;
+}
+
+.how-to-play__section {
+  width: 100%;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.how-to-play__heading {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.how-to-play__pieces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.how-to-play__piece {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.how-to-play__piece-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 10px);
+  grid-template-rows: repeat(4, 10px);
+  gap: 1px;
+}
+
+.how-to-play__cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--color-bg-alt);
+}
+
+.how-to-play__cell--filled {
+  border-radius: 1px;
+}
+
+[data-piece="I"] .how-to-play__cell--filled {
+  background: var(--color-cyan);
+}
+[data-piece="O"] .how-to-play__cell--filled {
+  background: var(--color-yellow);
+}
+[data-piece="T"] .how-to-play__cell--filled {
+  background: var(--color-purple);
+}
+[data-piece="S"] .how-to-play__cell--filled {
+  background: var(--color-green);
+}
+[data-piece="Z"] .how-to-play__cell--filled {
+  background: var(--color-red);
+}
+[data-piece="J"] .how-to-play__cell--filled {
+  background: var(--color-blue);
+}
+[data-piece="L"] .how-to-play__cell--filled {
+  background: var(--color-orange);
+}
+
+.how-to-play__piece-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.how-to-play__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.how-to-play__table td {
+  padding: 4px 0;
+}
+
+.how-to-play__key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: right;
+  padding-right: 16px;
+  min-width: 80px;
+}
+
+/* ── High-scores viewer (PROJ-32) ─────────────────────────────
+   The panel chrome is the shared .overlay__panel surface card; this block
+   only lays out the ranked rows. Scores use the mono token so digits never
+   jitter; the date and elapsed time use the secondary token — dim
+   (--color-text-dim) is decoration-only per frontend-rules §7 and never
+   carries information. */
+
+.high-scores {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.high-scores__row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.high-scores__rank {
+  min-width: 20px;
+  font-size: var(--game-over-label-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.high-scores__score {
+  min-width: 72px;
+  font-family: var(--font-mono);
+  font-size: var(--game-over-value-size);
+  color: var(--color-text);
+}
+
+.high-scores__detail {
+  flex: 1;
+  font-size: var(--game-over-label-size);
+  color: var(--color-text);
+}
+
+.high-scores__date,
+.high-scores__time {
+  font-family: var(--font-mono);
+  font-size: var(--game-over-label-size);
+  color: var(--color-text-secondary);
+}
+
+/* ── Level up overlay (§2.8) ────────────────────────────
+   The engine holds the `levelUp` flag for 1.5 s after a level advance; the
+   renderer flips `data-active` on and off, and this block animates within
+   that window. The full-screen white flash peaks at 20% and fades over
+   100 ms; the banner text fades in over 300 ms and holds. pointer-events:
+   none keeps the transient overlay from ever eating a click. */
+
+.level-up {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.level-up[data-active] {
+  visibility: visible;
+}
+
+.level-up__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--color-drop-flash);
+  opacity: 0;
+}
+
+.level-up[data-active] .level-up__flash {
+  animation: level-up-flash var(--level-up-flash-duration) ease-out forwards;
+}
+
+@keyframes level-up-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: var(--level-up-flash-opacity);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.level-up__text {
+  position: relative;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.level-up[data-active] .level-up__text {
+  animation: level-up-fade var(--level-up-fade-duration) ease-out forwards;
+}
+
+@keyframes level-up-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Motion preferences ─────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    transition: none;
+  }
+
+  .overlay {
+    transition: none;
+  }
+
+  body[data-phase="game_over"] .overlay--game-over {
+    transition: visibility 0s linear var(--game-over-delay);
+  }
+
+  /* The board still greys out on the same beat — it is a state, not a motion —
+     it just arrives without the fade. */
+  body[data-phase="game_over"] .board {
+    transition: filter 0s linear var(--game-over-delay);
+  }
+
+  .starfield__layer {
+    animation: none;
+  }
+
+  .board[data-lock-delay="active"] {
+    animation: none;
+    box-shadow:
+      var(--board-shadow),
+      0 0 var(--lock-delay-glow-blur) var(--lock-delay-glow-spread)
+        color-mix(in srgb, var(--cell-color) var(--lock-delay-glow-opacity), transparent);
+  }
+
+  .board__cell[data-state="clearing"] {
+    animation: none;
+  }
+
+  .board__cell[data-state="swap-in"],
+  .board__cell[data-state="swap-out"] {
+    animation: none;
+  }
+
+  .level-up__flash {
+    animation: none;
+    opacity: 0;
+  }
+
+  .level-up__text {
+    animation: none;
+  }
+
+  .touch-btn:active {
+    transform: none;
+  }
+}
